@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="icon" type="image/png" href="/static/icon.png">
+    <link type="text/css" rel="stylesheet" href="/static/main.css">
+    <title>
+      Creolog
+      {% block title %}
+      {% endblock %}
+    </title>
+  </head>
+  <body>
+    <a href="{{ url }}">{{ url_linktext }}</a> |
+    {% block nav %}
+    {% endblock %}
+    <br>
+    <br>
+    {% block content %}
+    {% endblock %}
+  </body>
+</html>

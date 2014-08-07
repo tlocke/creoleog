@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}&gt; {{blog.title}}{% endblock %}
+
+{% block nav %}
+<a href="/">Creolog</a> &gt; {{blog.title}}
+{% endblock %}
+  
+{% block content %}
+  {% if request.GET.delete %}
+    <p>Are you sure you want to delete this blog?</p>
+      <form action="" method="post">
+        {% csrf_token %}
+        <fieldset>
+          <legend>Delete this blog</legend>
+          <input type="hidden" name="blog_key" value="{{blog.key.urlsafe}}">
+          <input type="submit" name="delete" value="Delete">
+          <p><a href="/view_blog?blog_key={{blog.key.urlsafe}}">Cancel</a></p>
+        </fieldset>
+      </form>
+  {% else %}
+    {% if guser and user_blog.key == blog.key %}
+      <form action="">
+        <fieldset>
+          <legend>Delete this blog</legend>
+          <input type="hidden" name="blog_key" value="{{blog.key.urlsafe}}">
+          <input type="submit" name="delete" value="Delete">
+        </fieldset>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endblock %}
