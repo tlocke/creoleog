@@ -1,7 +1,8 @@
-from django.http import HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponseRedirect, HttpResponseBadRequest, Http404
+from django.core.exceptions import PermissionDenied
 from django.views.generic.simple import direct_to_template
 from google.appengine.api import users
-from creoleog.models import Blog, Entry
+from creoleog.models import Blog, Entry, check_creole
 from google.appengine.ext.ndb import Key, delete_multi
 import urllib
 from django import forms
@@ -23,22 +24,37 @@ def return_template(request, template_name, template_map):
 def user_key(user):
     return Key('User', user.user_id())
 
-def get_key(params, name):
+def get_entity(params, name):
     try:
         key_str = params[name + '_key']
     except KeyError:
-        return HttpBadRequest("Parameter " + name + " is required.")
-    return Key(urlsafe=key_str)
+        raise Http404("Parameter " + name + " is required.")
+    entity = Key(urlsafe=key_str).get()
+    if entity is None:
+        raise Http404("Can't find this entity.")
+    return entity
+
+def get_blog(params):
+    blog = get_entity(params, 'blog')
+    if blog.key.kind() != 'Blog':
+        raise Http404("This isn't the key for a blog.")
+    return blog
+
+def get_entry(params):
+    entry = get_entity(params, 'entry')
+    if entry.key.kind() != 'Entry':
+        raise Http404("This isn't the key for a entry.")
+    return entry
 
 def require_current_user():
     guser = users.get_current_user()
     if guser is None:
-        return HttpResponseForbidden("You must be logged in to do that.")
+        raise PermissionDenied("You must be logged in to do that.")
     return guser
 
 def require_blog_owner(guser, blog):
     if blog.key.parent() != user_key(guser):
-        return HttpResponseForbidden("You can only do that with your blog.")
+        raise PermissionDenied("You can only do that with your blog.")
 
 def home(request):
     guser = users.get_current_user()
@@ -79,16 +95,68 @@ def create_blog(request):
 
     return return_template( request, 'create_blog.html', {'form': form})
 
+
 def view_blog(request):
     if request.method == 'POST':
         guser = require_current_user()
-        blog_key = get_key(request.POST, 'blog')
-        blog = blog_key.get()
+        blog = get_blog(request.POST)
         require_blog_owner(guser, blog)
         delete_multi(Entry.query(ancestor=blog.key).iter(keys_only=True))
-        blog_key.delete()
+        blog.key.delete()
         return HttpResponseRedirect('/')
     else:
-        blog_key = get_key(request.GET, 'blog')
-        blog = blog_key.get()
-        return return_template(request, 'view_blog.html', {'blog': blog})
+        blog = get_blog(request.GET)
+        entries = Entry.query(
+            ancestor=blog.key).order(Entry.creation_date).fetch(100)
+        return return_template(
+            request, 'view_blog.html', {'blog': blog, 'entries': entries})
+
+
+class NewEntryForm(forms.Form):
+    body = forms.CharField(
+        required=True, widget=forms.Textarea, validators=[check_creole])
+
+def new_entry(request):
+    if request.method == 'POST':
+        guser = require_current_user()
+        blog = get_blog(request.POST)
+        require_blog_owner(guser, blog)
+        form = NewEntryForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            entry = Entry(body=cd['body'], parent=blog.key)
+            entry.put()
+            return HttpResponseRedirect(
+                '/view_blog?blog_key=' + blog.key.urlsafe())
+    else:
+        blog = get_blog(request.GET)
+        form = NewEntryForm()
+
+    return return_template(
+        request, 'new_entry.html', {'blog': blog, 'form': form})
+
+class EditEntryForm(forms.Form):
+    body = forms.CharField(
+        required=True, widget=forms.Textarea, validators=[check_creole])
+
+def edit_entry(request):
+    if request.method == 'POST':
+        guser = require_current_user()
+        entry = get_entry(request.POST)
+        blog = entry.key.parent().get()
+        require_blog_owner(guser, blog)
+        form = NewPostForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            entry = Entry(body=cd['body'], parent=blog.key)
+            entry.put()
+            return HttpResponseRedirect(
+                '/view_blog?blog_key=' + blog.key.urlsafe())
+    else:
+        entry = get_entry(request.GET)
+        blog = entry.key.parent().get()
+        form = EditEntryForm()
+
+    return return_template(
+        request, 'edit_entry.html', {
+            'blog': blog, 'entry': entry, 'form': form})

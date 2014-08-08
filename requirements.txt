@@ -1,0 +1,4 @@
+Django==1.4
+argparse==1.2.1
+creole==1.2
+wsgiref==0.1.2

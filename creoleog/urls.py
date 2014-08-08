@@ -6,6 +6,8 @@ from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns('',
     # Examples:
+    url(r'^edit_entry$', 'creoleog.views.edit_entry'),
+    url(r'^new_post$', 'creoleog.views.new_post'),
     url(r'^view_blog$', 'creoleog.views.view_blog'),
     url(r'^create_blog$', 'creoleog.views.create_blog'),
     url(r'^$', 'creoleog.views.home'),

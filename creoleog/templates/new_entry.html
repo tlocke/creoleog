@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}&gt; {{blog.title}} &gt; New Post{% endblock %}
+
+{% block nav %}
+  <a href="/">Creoleog</a> &gt;
+  <a href="/view_blog?blog_key={{blog.key.urlsafe}}">{{blog.title}}</a> &gt;
+  New Post
+{% endblock %}
+  
+{% block content %}
+  {% if form.errors %}
+    <p>
+      There seems to be a problem with a field below...
+    </p>
+  {% endif %}
+
+  <form action="" method="post">
+    {% csrf_token %}
+    <fieldset>
+      <legend>Add New Post</legend>
+      <input type="hidden" name="blog_key" value="{{blog.key.urlsafe}}">      
+
+      {{ form.as_p }}
+      
+      <input type="submit" value="Add">
+    </fieldset>
+  </form>
+{% endblock %}

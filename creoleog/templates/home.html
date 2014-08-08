@@ -18,6 +18,8 @@
       </li>
     {% endif %}
 
+    <p>The simplest blogging platform that could possibly work!</p>
+
     {% for blog in blogs %}
     <li>
       <a href="/view_blog?blog_key={{ blog.key.urlsafe }}">
@@ -27,7 +29,11 @@
     {% endfor %}
   </ul>
 
-  {% if guser and not user_blog %}
-    <p><a href="/create_blog">Create a blog</a></p>
+  {% if guser %}
+    {% if not user_blog %}
+      <p><a href="/create_blog">Create a blog</a></p>
+    {% endif %}
+  {% else %}
+    <p>Log in to create a blog, or post to your existing blog.</p>
   {% endif %}
 {% endblock %}

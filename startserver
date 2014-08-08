@@ -1,0 +1,5 @@
+#!/bin/bash
+
+. venv/bin/activate
+${HOME}/google_appengine/dev_appserver.py --clear_datastore=yes . &
+echo $! > pid_file

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}
+  &gt; {{blog.title}} &gt; Edit {{entry.creation_date|date:"Y-m-d H:i"}}
+{% endblock %}
+
+{% block nav %}
+  <a href="/">Creoleog</a> &gt;
+  <a href="/view_blog?blog_key={{blog.key.urlsafe}}">{{blog.title}}</a> &gt;
+  Edit {{entry.creation_date|date:"Y-m-d H:i"}}
+{% endblock %}
+  
+{% block content %}
+  {% if form.errors %}
+    <p>
+      There seems to be a problem with a field below...
+    </p>
+  {% endif %}
+
+  <form action="" method="post">
+    {% csrf_token %}
+    <fieldset>
+      <legend>Edit Post</legend>
+      <input type="hidden" name="entry_key" value="{{entry.key.urlsafe}}">      
+
+      {{ form.as_p }}
+      
+      <input type="submit" value="Save">
+    </fieldset>
+  </form>
+{% endblock %}

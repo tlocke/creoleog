@@ -53,3 +53,5 @@ coverage.xml
 docs/_build/
 
 creoleog/secret.py
+creole
+pid_file
