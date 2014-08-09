@@ -1,0 +1,28 @@
+@import url(http://fonts.googleapis.com/css?family=Josephin+Sans|Lato);
+
+#logo {
+  font-weight: bold;
+}
+
+body {
+  font-family: 'Josephin Sans', sans-serif;
+}
+
+#entry {
+  font-family: 'Lato', sans-serif;
+  font-size: large;
+}
+
+#blog-title {
+  font-family: 'Lato', sans-serif;
+  font-size: xx-large;
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+#cheat-sheet, #cheat-sheet td, #cheat-sheet th {
+  border-collapse: collapse;
+  border-style: solid;
+  border-width: thin;
+  padding: 0.5em;
+}

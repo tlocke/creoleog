@@ -3,7 +3,7 @@
 {% block title %}&gt; {{blog.title}} &gt; New Post{% endblock %}
 
 {% block nav %}
-  <a href="/">Creoleog</a> &gt;
+  <span id="logo"><a href="/">Creoleog</a></span> &gt;
   <a href="/view_blog?blog_key={{blog.key.urlsafe}}">{{blog.title}}</a> &gt;
   New Post
 {% endblock %}
@@ -17,8 +17,7 @@
 
   <form action="" method="post">
     {% csrf_token %}
-    <fieldset>
-      <legend>Add New Post</legend>
+    <fieldset style="border: none;">
       <input type="hidden" name="blog_key" value="{{blog.key.urlsafe}}">      
 
       {{ form.as_p }}
@@ -26,4 +25,121 @@
       <input type="submit" value="Add">
     </fieldset>
   </form>
+  <br>
+
+  <table id="cheat-sheet">
+    <caption>Special Codes</caption>
+    <thead>
+      <tr>
+        <th>You type</th>
+        <th>It'll look like</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>//emphasised text//</code></td>
+        <td><em>emphasised text</em></td>
+      </tr>
+      <tr>
+        <td><code><code>**strongly emphasised text**</code></td>
+        <td><strong>strongly emphasised text</strong></td>
+      </tr>
+      <tr>
+        <td><code>[[http://wikicreole.org|WikiCreole]]</code></td>
+        <td><a href="http://wikicreole.org">WikiCreole</a></td>
+      </tr>
+      <tr>
+      <tr>
+        <td>
+          <code>
+            {% templatetag openvariable %}{% templatetag openbrace %}
+              **ignore the special codes!**
+            {% templatetag closevariable %}{% templatetag closebrace %}
+          </code>
+        </td>
+        <td>**ignore the special codes!**</td>
+      </tr>
+      <tr>
+        <td>= Heading 1</td><td><h1>Heading 1</h1></td>
+      </tr>
+      <tr>
+        <td>== Heading 2</td><td><h2>Heading 2</h2></td>
+      </tr>
+      <tr>
+        <td>=== Heading 3</td><td><h3>Heading 3</h3></td>
+      </tr>
+      <tr>
+        <td>==== Heading 4</td><td><h4>Heading 4</h4></td>
+      </tr>
+      <tr>
+        <td>===== Heading 5</td><td><h5>Heading 5</h5></td>
+      </tr>
+      <tr>
+        <td><pre>
+* first item
+* second item
+** first subitem of second item
+* third item</pre>
+        </td>
+        <td>
+          <ul>
+            <li>first item</li>
+            <li>second item
+              <ul>
+                <li>first subitem of second item</li>
+              </ul>
+            </li>
+            <li>third item</li>
+          </ul>
+        </td>
+      </tr>
+      <tr>
+        <td><pre>
+# first item
+# second item
+## first subitem of second item
+# third item</pre>
+        </td>
+        <td>
+          <ol>
+            <li>first item</li>
+            <li>second item
+              <ol>
+                <li>first subitem of second item</li>
+              </ol>
+            </li>
+            <li>third item</li>
+          </ol>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <pre>
+| first row first column | first row second column |
+| second row first column | second row second column |</pre>
+        </td>
+        <td>
+          <table>
+            <tr>
+              <td>first row first column</td>
+              <td>first row second column</td>
+            </tr>
+            <tr>
+              <td>second row first column</td>
+              <td>second row second column</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <pre>
+----</pre>
+        </td>
+        <td>
+          <hr />
+        </td>
+      </tr>
+    </tbody>
+  </table>
 {% endblock %}

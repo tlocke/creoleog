@@ -13,10 +13,10 @@ def return_template(request, template_name, template_map):
     template_map['request'] = request
     if guser is None:
         template_map['url'] = users.create_login_url(request.get_full_path())
-        template_map['url_linktext'] = 'Login'
+        template_map['url_linktext'] = 'Sign In'
     else:
         template_map['url'] = users.create_logout_url(request.get_full_path())
-        template_map['url_linktext'] = 'Logout'
+        template_map['url_linktext'] = 'Sign Out'
         template_map['user_blog'] = Blog.query(ancestor=user_key(guser)).get()
 
     return direct_to_template(request, template_name, template_map)
@@ -56,6 +56,10 @@ def require_blog_owner(guser, blog):
     if blog.key.parent() != user_key(guser):
         raise PermissionDenied("You can only do that with your blog.")
 
+class CreoleogForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super(CreoleogForm, self).__init__(*args, label_suffix='', **kwargs)
+
 def home(request):
     guser = users.get_current_user()
     user_blog = None
@@ -71,7 +75,7 @@ def home(request):
 
     return return_template(request, 'home.html', {'blogs': blogs})
 
-class CreateBlogForm(forms.Form):
+class CreateBlogForm(CreoleogForm):
     title = forms.CharField(required=True)
 
 def create_blog(request):
@@ -97,24 +101,18 @@ def create_blog(request):
 
 
 def view_blog(request):
-    if request.method == 'POST':
-        guser = require_current_user()
-        blog = get_blog(request.POST)
-        require_blog_owner(guser, blog)
-        delete_multi(Entry.query(ancestor=blog.key).iter(keys_only=True))
-        blog.key.delete()
-        return HttpResponseRedirect('/')
-    else:
-        blog = get_blog(request.GET)
-        entries = Entry.query(
-            ancestor=blog.key).order(Entry.creation_date).fetch(100)
-        return return_template(
-            request, 'view_blog.html', {'blog': blog, 'entries': entries})
+    blog = get_blog(request.GET)
+    entries = Entry.query(
+        ancestor=blog.key).order(Entry.creation_date).fetch(100)
+    return return_template(
+        request, 'view_blog.html', {'blog': blog, 'entries': entries})
 
 
-class NewEntryForm(forms.Form):
+class NewEntryForm(CreoleogForm):
     body = forms.CharField(
-        required=True, widget=forms.Textarea, validators=[check_creole])
+        required=True,
+        widget=forms.Textarea(attrs={'cols': '80', 'rows': '20'}),
+        validators=[check_creole], label='')
 
 def new_entry(request):
     if request.method == 'POST':
@@ -135,9 +133,12 @@ def new_entry(request):
     return return_template(
         request, 'new_entry.html', {'blog': blog, 'form': form})
 
-class EditEntryForm(forms.Form):
+class EditEntryForm(CreoleogForm):
     body = forms.CharField(
-        required=True, widget=forms.Textarea, validators=[check_creole])
+        required=True,
+        widget=forms.Textarea(attrs={'cols': '80', 'rows': '20'}),
+        validators=[check_creole],
+        label='')
 
 def edit_entry(request):
     if request.method == 'POST':
@@ -145,18 +146,52 @@ def edit_entry(request):
         entry = get_entry(request.POST)
         blog = entry.key.parent().get()
         require_blog_owner(guser, blog)
-        form = NewPostForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
-            entry = Entry(body=cd['body'], parent=blog.key)
-            entry.put()
+        if 'delete' in request.POST:
+            entry.key.delete()
             return HttpResponseRedirect(
                 '/view_blog?blog_key=' + blog.key.urlsafe())
+        else:
+            form = NewEntryForm(request.POST)
+            if form.is_valid():
+                cd = form.cleaned_data
+                entry.body = cd['body']
+                entry.put()
+                return HttpResponseRedirect(
+                    '/view_blog?blog_key=' + blog.key.urlsafe())
     else:
         entry = get_entry(request.GET)
         blog = entry.key.parent().get()
-        form = EditEntryForm()
+        form = EditEntryForm(initial={'body': entry.body})
 
     return return_template(
         request, 'edit_entry.html', {
             'blog': blog, 'entry': entry, 'form': form})
+
+class EditBlogForm(CreoleogForm):
+    title = forms.CharField(required=True, label='')
+
+def edit_blog(request):
+    if request.method == 'POST':
+        guser = require_current_user()
+        blog = get_blog(request.POST)
+        require_blog_owner(guser, blog)
+        if 'delete' in request.POST:
+            delete_multi(Entry.query(ancestor=blog.key).iter(keys_only=True))
+            blog.key.delete()
+            return HttpResponseRedirect('/')
+        else:
+            form = EditBlogForm(request.POST)
+            if form.is_valid():
+                cd = form.cleaned_data
+                blog.title = cd['title']
+                blog.put()
+                return HttpResponseRedirect(
+                    '/view_blog?blog_key=' + blog.key.urlsafe())
+    else:
+        guser = require_current_user()
+        blog = get_blog(request.GET)
+        require_blog_owner(guser, blog)
+        form = EditBlogForm(initial={'title': blog.title})
+
+    return return_template(
+        request, 'edit_blog.html', {'blog': blog, 'form': form})

@@ -1,14 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}
-  Creoleog
-{% endblock %}
-
 {% block nav %}
-  Creoleog
+  <span id="logo">Creoleog</span> -
+  <span style="font-style: italic;">
+    The simplest blogging platform that could possibly work!
+  </span>
 {% endblock %}
 
 {% block content %}
+
+  {% if guser %}
+    {% if not user_blog %}
+      <p><a href="/create_blog">Create a blog</a></p>
+    {% endif %}
+  {% else %}
+    <p>Sign in to create a blog, or to post to your existing blog.</p>
+  {% endif %}
+
+  <h3>Blogs</h3>
+
   <ul>
     {% if user_blog %}
       <li>
@@ -17,9 +27,6 @@
         </a>
       </li>
     {% endif %}
-
-    <p>The simplest blogging platform that could possibly work!</p>
-
     {% for blog in blogs %}
     <li>
       <a href="/view_blog?blog_key={{ blog.key.urlsafe }}">
@@ -28,12 +35,4 @@
     </li> 
     {% endfor %}
   </ul>
-
-  {% if guser %}
-    {% if not user_blog %}
-      <p><a href="/create_blog">Create a blog</a></p>
-    {% endif %}
-  {% else %}
-    <p>Log in to create a blog, or post to your existing blog.</p>
-  {% endif %}
 {% endblock %}
