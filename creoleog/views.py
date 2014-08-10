@@ -3,9 +3,12 @@ from django.core.exceptions import PermissionDenied
 from django.views.generic.simple import direct_to_template
 from google.appengine.api import users
 from creoleog.models import Blog, Entry, check_creole
-from google.appengine.ext.ndb import Key, delete_multi, transactional
+from google.appengine.ext.ndb import Key, delete_multi
 from django import forms
 from django.forms.util import ErrorList
+
+MAX_BLOGS = 100
+MAX_ENTRIES = 100
 
 
 def return_template(request, template_name, template_map):
@@ -76,7 +79,7 @@ def home(request):
         guser_key = user_key(guser)
         user_blog = Blog.query(ancestor=guser_key).get()
 
-    blogs = Blog.query().fetch(100)
+    blogs = Blog.query().fetch(MAX_BLOGS)
     if user_blog is not None:
         for i, blog in enumerate(list(blogs)):
             if blog.key.parent() == guser_key:
@@ -87,17 +90,6 @@ def home(request):
 
 class CreateBlogForm(CreoleogForm):
     title = forms.CharField(required=True)
-
-
-@transactional
-def put_blog(title, parent):
-    duplicate_blog = Blog.query(Blog.title == 'title').get()
-    if duplicate_blog is None:
-        return
-    else:
-        blog = Blog(title, parent)
-        blog.put()
-        return blog
 
 
 def create_blog(request):
@@ -115,10 +107,16 @@ def create_blog(request):
             blog_title = cd['title'].strip()
             duplicate_blog = Blog.query(Blog.title == blog_title).get()
             if duplicate_blog is None:
-                blog = Blog(title=blog_title, parent=parent)
-                blog.put()
-                return HttpResponseRedirect(
-                    '/view_blog?blog_key=' + blog.key.urlsafe())
+                if Blog.query().count() >= MAX_BLOGS:
+                    errors = form._errors.setdefault("title", ErrorList())
+                    errors.append(
+                        "Sorry, the maximum number of blogs has been "
+                        "reached.")
+                else:
+                    blog = Blog(title=blog_title, parent=parent)
+                    blog.put()
+                    return HttpResponseRedirect(
+                        '/view_blog?blog_key=' + blog.key.urlsafe())
             else:
                 errors = form._errors.setdefault("title", ErrorList())
                 errors.append(u"This blog name is already taken.")
@@ -131,7 +129,7 @@ def create_blog(request):
 def view_blog(request):
     blog = get_blog(request.GET)
     entries = Entry.query(
-        ancestor=blog.key).order(Entry.creation_date).fetch(100)
+        ancestor=blog.key).order(Entry.creation_date).fetch(MAX_ENTRIES)
     return return_template(
         request, 'view_blog.html', {'blog': blog, 'entries': entries})
 
@@ -149,7 +147,12 @@ def new_entry(request):
         blog = get_blog(request.POST)
         require_blog_owner(guser, blog)
         form = NewEntryForm(request.POST)
-        if form.is_valid():
+        if Entry.query(ancestor=blog.key).count() >= MAX_ENTRIES:
+            errors = form._errors.setdefault("body", ErrorList())
+            errors.append(
+                "Sorry, the maximum number of posts has been "
+                "reached.")
+        elif form.is_valid():
             cd = form.cleaned_data
             entry = Entry(body=cd['body'], parent=blog.key)
             entry.put()
