@@ -14,3 +14,9 @@ indexes:
   ancestor: yes
   properties:
   - name: creation_date
+
+- kind: Entry
+  ancestor: yes
+  properties:
+  - name: creation_date
+    direction: desc

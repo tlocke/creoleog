@@ -129,7 +129,7 @@ def create_blog(request):
 def view_blog(request):
     blog = get_blog(request.GET)
     entries = Entry.query(
-        ancestor=blog.key).order(Entry.creation_date).fetch(MAX_ENTRIES)
+        ancestor=blog.key).order(-Entry.creation_date).fetch(MAX_ENTRIES)
     return return_template(
         request, 'view_blog.html', {'blog': blog, 'entries': entries})
 

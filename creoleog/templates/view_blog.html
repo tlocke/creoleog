@@ -16,6 +16,11 @@
     {% endif %}
   </h1>
 
+  {% if user_blog %}
+    <br>
+    <p><a href="/new_entry?blog_key={{blog.key.urlsafe}}">New Post</a></p>
+  {% endif %}
+
   {% for entry in entries %}
     <div id="entry">{{entry.body_as_html|safe}}</div>
     <p style="font-size: small;">
@@ -26,9 +31,4 @@
     </p>
     <br>
   {% endfor %}
-
-  {% if user_blog %}
-    <br>
-    <p><a href="/new_entry?blog_key={{blog.key.urlsafe}}">New Post</a></p>
-  {% endif %}
 {% endblock %}
