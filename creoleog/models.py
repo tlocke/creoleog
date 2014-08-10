@@ -3,6 +3,7 @@ from xml.dom import Node
 from creole import creole2html
 import xml.parsers.expat
 import xml.dom.minidom
+from django.core.exceptions import ValidationError
 
 allowed_elements = {
     'a': ['href'], 'br': [], 'p': [], 'h1': [], 'h2': [], 'h3': [],
@@ -27,6 +28,7 @@ NODE_TYPES = {
     Node.DOCUMENT_TYPE_NODE: 'document_type',
     Node.NOTATION_NODE: 'notation'}
 
+
 def creole_as_html(creole_txt):
     html = creole2html(creole_txt)
     for old, new in conv:
@@ -39,7 +41,7 @@ def check_node(node):
         pass
     elif node.nodeType == node.ELEMENT_NODE:
         if node.tagName not in allowed_elements.keys():
-            raise HTTPBadRequest(
+            raise ValidationError(
                 "The element '" + node.tagName + """' is not allowed. The
                 allowed elements are """ + str(allowed_elements.keys()))
         allowed_attrs = allowed_elements[node.tagName]
@@ -47,7 +49,7 @@ def check_node(node):
         for i in range(attrs.length):
             attr = attrs.item(i)
             if attr.name not in allowed_attrs:
-                raise HTTPBadRequest(
+                raise ValidationError(
                     "The only allowed attributes of the '" +
                     node.tagName + "' element are " +
                     str(allowed_attrs) + ".")
@@ -69,8 +71,10 @@ def check_creole(creole_str):
     for node in dom.documentElement.childNodes:
         check_node(node)
 
+
 class Blog(ndb.Model):
-    title = ndb.StringProperty(required=True, indexed=False)
+    title = ndb.StringProperty(required=True)
+
 
 class Entry(ndb.Model):
     body = ndb.StringProperty(indexed=False)

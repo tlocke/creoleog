@@ -3,9 +3,10 @@ from django.core.exceptions import PermissionDenied
 from django.views.generic.simple import direct_to_template
 from google.appengine.api import users
 from creoleog.models import Blog, Entry, check_creole
-from google.appengine.ext.ndb import Key, delete_multi
-import urllib
+from google.appengine.ext.ndb import Key, delete_multi, transactional
 from django import forms
+from django.forms.util import ErrorList
+
 
 def return_template(request, template_name, template_map):
     guser = users.get_current_user()
@@ -21,8 +22,10 @@ def return_template(request, template_name, template_map):
 
     return direct_to_template(request, template_name, template_map)
 
+
 def user_key(user):
     return Key('User', user.user_id())
+
 
 def get_entity(params, name):
     try:
@@ -34,11 +37,13 @@ def get_entity(params, name):
         raise Http404("Can't find this entity.")
     return entity
 
+
 def get_blog(params):
     blog = get_entity(params, 'blog')
     if blog.key.kind() != 'Blog':
         raise Http404("This isn't the key for a blog.")
     return blog
+
 
 def get_entry(params):
     entry = get_entity(params, 'entry')
@@ -46,19 +51,23 @@ def get_entry(params):
         raise Http404("This isn't the key for a entry.")
     return entry
 
+
 def require_current_user():
     guser = users.get_current_user()
     if guser is None:
         raise PermissionDenied("You must be logged in to do that.")
     return guser
 
+
 def require_blog_owner(guser, blog):
     if blog.key.parent() != user_key(guser):
         raise PermissionDenied("You can only do that with your blog.")
 
+
 class CreoleogForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super(CreoleogForm, self).__init__(*args, label_suffix='', **kwargs)
+
 
 def home(request):
     guser = users.get_current_user()
@@ -75,29 +84,48 @@ def home(request):
 
     return return_template(request, 'home.html', {'blogs': blogs})
 
+
 class CreateBlogForm(CreoleogForm):
     title = forms.CharField(required=True)
 
+
+@transactional
+def put_blog(title, parent):
+    duplicate_blog = Blog.query(Blog.title == 'title').get()
+    if duplicate_blog is None:
+        return
+    else:
+        blog = Blog(title, parent)
+        blog.put()
+        return blog
+
+
 def create_blog(request):
     guser = require_current_user()
-
-    blog = Blog.query(ancestor=user_key(guser)).get()
+    parent = user_key(guser)
+    blog = Blog.query(ancestor=parent).get()
 
     if blog is not None:
         return HttpResponseBadRequest("A blog has already been created.")
-        
+
     if request.method == 'POST':
         form = CreateBlogForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data
-            blog = Blog(title=cd['title'], parent=user_key(guser))
-            blog.put()
-            return HttpResponseRedirect(
-                '/view_blog?blog_key=' + blog.key.urlsafe())
+            blog_title = cd['title'].strip()
+            duplicate_blog = Blog.query(Blog.title == blog_title).get()
+            if duplicate_blog is None:
+                blog = Blog(title=blog_title, parent=parent)
+                blog.put()
+                return HttpResponseRedirect(
+                    '/view_blog?blog_key=' + blog.key.urlsafe())
+            else:
+                errors = form._errors.setdefault("title", ErrorList())
+                errors.append(u"This blog name is already taken.")
     else:
         form = CreateBlogForm()
 
-    return return_template( request, 'create_blog.html', {'form': form})
+    return return_template(request, 'create_blog.html', {'form': form})
 
 
 def view_blog(request):
@@ -113,6 +141,7 @@ class NewEntryForm(CreoleogForm):
         required=True,
         widget=forms.Textarea(attrs={'cols': '80', 'rows': '20'}),
         validators=[check_creole], label='')
+
 
 def new_entry(request):
     if request.method == 'POST':
@@ -133,12 +162,14 @@ def new_entry(request):
     return return_template(
         request, 'new_entry.html', {'blog': blog, 'form': form})
 
+
 class EditEntryForm(CreoleogForm):
     body = forms.CharField(
         required=True,
         widget=forms.Textarea(attrs={'cols': '80', 'rows': '20'}),
         validators=[check_creole],
         label='')
+
 
 def edit_entry(request):
     if request.method == 'POST':
@@ -167,8 +198,10 @@ def edit_entry(request):
         request, 'edit_entry.html', {
             'blog': blog, 'entry': entry, 'form': form})
 
+
 class EditBlogForm(CreoleogForm):
     title = forms.CharField(required=True, label='')
+
 
 def edit_blog(request):
     if request.method == 'POST':

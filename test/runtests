@@ -1,0 +1,11 @@
+cd ..
+if ! flake8 creoleog; then
+	exit
+fi
+${HOME}/creoleog/stopserver
+${HOME}/creoleog/startserver &
+until curl --silent http://localhost:8080/ > /dev/null
+do
+	sleep 1
+done
+java -jar ~/java/imprimatur-022/imprimatur.jar ${HOME}/creoleog/test/imprimatur.xml

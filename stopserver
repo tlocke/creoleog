@@ -1,1 +1,1 @@
-kill $(cat pid_file)
+kill $(cat ${HOME}/creoleog/pid_file)
